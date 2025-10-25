@@ -1,0 +1,136 @@
+{% comment %}
+Custom PDP – Full dynamic variant calculation
+- No backend variants needed
+- Width x Drop x Fabric Panels
+- Dynamic price calculation
+- Add to Cart uses the first available Shopify variant (0 price)
+- Dawn 15.0 ready
+{% endcomment %}
+
+<section id="custom-product" class="custom-product-section" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+  <!-- MEDIA COLUMN LEFT -->
+  <div class="product-media-column">
+    {% for media in product.media %}
+      <div class="product-media-item" style="margin-bottom:15px;">
+        {% if media.media_type == 'image' %}
+          <img src="{{ media.preview_image | img_url: '1024x1024' }}" alt="{{ media.alt | escape }}" style="width:100%;">
+        {% elsif media.media_type == 'video' %}
+          <video controls style="width:100%;">
+            <source src="{{ media.preview_image | img_url: '1024x1024' }}" type="video/mp4">
+          </video>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- PDP COLUMN RIGHT -->
+  <div class="product-pdp-column">
+
+    <h1>{{ product.title }}</h1>
+
+    <!-- Price Display -->
+    <div id="product-price" style="font-size:24px; margin-bottom:15px;">0.00</div>
+
+    <!-- Width Selector -->
+    <label for="width-select">Width:</label>
+    <select id="width-select" style="margin-bottom:15px;">
+      <option value="100">100cm</option>
+      <option value="150">150cm</option>
+      <option value="200">200cm</option>
+    </select>
+
+    <!-- Drop Selector -->
+    <label for="drop-select">Drop:</label>
+    <select id="drop-select" style="margin-bottom:15px;">
+      <option value="drop1">Drop 1</option>
+      <option value="drop2">Drop 2</option>
+    </select>
+
+    <!-- Add to Cart Form (dummy variant) -->
+    <form method="post" action="/cart/add">
+      <input type="hidden" name="id" value="{{ product.variants.first.id }}">
+      <input type="hidden" id="final-price-input" name="properties[Custom Price]" value="0">
+      <button type="submit" id="add-to-cart-button" class="button button--primary">Add to Cart</button>
+    </form>
+
+  </div>
+</section>
+
+<!-- Price Calculation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+  const widthSelect = document.getElementById('width-select');
+  const dropSelect = document.getElementById('drop-select');
+  const priceDisplay = document.getElementById('product-price');
+  const finalPriceInput = document.getElementById('final-price-input');
+
+  // Fabric Panels and Price Mapping (JSON)
+  const fabricPanelsData = {"100":1,"150":2,"200":3};
+  const priceMapping = {"100":100,"150":120,"200":140};
+
+  function calculatePrice(){
+    const width = widthSelect.value;
+    const panelCount = fabricPanelsData[width] || 0;
+    const panelPrice = priceMapping[width] || 0;
+
+    const finalPrice = panelCount * panelPrice;
+
+    priceDisplay.textContent = finalPrice.toFixed(2);
+    finalPriceInput.value = finalPrice.toFixed(2);
+  }
+
+  widthSelect.addEventListener('change', calculatePrice);
+  dropSelect.addEventListener('change', calculatePrice);
+
+  // Initial calculation
+  calculatePrice();
+
+});
+</script>
+
+
+{% schema %}
+{
+  "name": "Main product",
+  "settings": [],
+  "blocks": [
+    {
+      "type": "custom_pdp",
+      "name": "Custom PDP Settings",
+      "settings": [
+        {
+          "type": "text",
+          "id": "custom_widths",
+          "label": "Width Options (100cm • 150cm • 200cm)",
+          "default": "100cm • 150cm • 200cm"
+        },
+        {
+          "type": "textarea",
+          "id": "fabric_panels",
+          "label": "Fabric Panels JSON",
+          "default": "{\"100\":1,\"150\":2,\"200\":3}"
+        },
+        {
+          "type": "textarea",
+          "id": "price_mapping",
+          "label": "Price Mapping JSON",
+          "default": "{\"100\":100,\"150\":120,\"200\":140}"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Default",
+      "category": "Product",
+      "blocks": [
+        {
+          "type": "custom_pdp"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
